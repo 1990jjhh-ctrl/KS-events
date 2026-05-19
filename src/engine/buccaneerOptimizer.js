@@ -61,6 +61,10 @@ export function rerollDecision(rankedSlots, keyBudget, freeRerollsRemaining, tar
 export function projectYield(config) {
   const { slots, targetItemId, keyBudget, freeRerollsRemaining, data } = config;
   const { meta } = data;
+  const K = meta.keyCostPerChest; // 60
+  const R = meta.rerollCost;      // 90
+
+  const evAvgSlot = evRerollExpected(targetItemId, data);
 
   let keysLeft = keyBudget;
   let totalYield = 0;
@@ -69,62 +73,48 @@ export function projectYield(config) {
   let paidRerollsUsed = 0;
   let freeRerolls = freeRerollsRemaining;
 
-  const evAvgSlot = evRerollExpected(targetItemId, data);
+  // Phase 1: first board — known chest types.
+  // Open only slots whose EV beats the expected value of a fresh random slot.
+  const ranked = scoreSlots(slots, targetItemId, data.rewardTables);
+  let firstBoardOpened = 0;
+  for (const slot of ranked) {
+    if (slot.ev < evAvgSlot) break; // sorted desc, so all remaining are also below
+    if (keysLeft < K) break;
+    totalYield += slot.ev;
+    keysLeft -= K;
+    firstBoardOpened++;
+  }
 
-  // First board: use the actual known slots
-  let currentBoard = [...slots];
-  let isFirstBoard = true;
+  const firstBoardComplete = firstBoardOpened === slots.length;
 
-  // Safety cap to prevent infinite loops
-  const MAX_BOARDS = 200;
-
-  while (keysLeft >= meta.keyCostPerChest && boardsPlayed < MAX_BOARDS) {
-    const ranked = scoreSlots(currentBoard, targetItemId, data.rewardTables);
-    const rerollCost = freeRerolls > 0 ? 0 : meta.rerollCost;
-
-    // Determine which chests to open: those with EV > evAvgSlot (worth opening before rerolling)
-    // On the first board, we may have chests below evAvgSlot that we skip in favour of rerolling.
-    // On random boards every slot has EV = evAvgSlot so we open all 9.
-    const openList = isFirstBoard
-      ? ranked.filter((s) => s.ev >= evAvgSlot)
-      : ranked; // all slots equal evAvgSlot on a random board
-
-    if (openList.length === 0) break;
-
-    // Open the eligible chests
-    let openedCount = 0;
-    for (const slot of openList) {
-      if (keysLeft < meta.keyCostPerChest) break;
-      totalYield += slot.ev;
-      keysLeft -= meta.keyCostPerChest;
-      openedCount++;
-    }
-
-    if (openedCount === 0) break;
-
-    const openedAll = openedCount === currentBoard.length;
-
-    if (openedAll) {
-      // Free auto-refresh
-      boardsPlayed++;
-      // Next board is random
-      currentBoard = Array(meta.chestSlots).fill('__avg__');
-      isFirstBoard = false;
-    } else if (keysLeft >= rerollCost + meta.keyCostPerChest) {
-      // Manual reroll
+  if (firstBoardComplete) {
+    // Opened all 9 → free auto-refresh, move to random boards
+    boardsPlayed++;
+  } else {
+    // Some (or all) slots skipped — reroll if affordable
+    const rerollCost = freeRerolls > 0 ? 0 : R;
+    if (keysLeft >= rerollCost + K) {
       keysLeft -= rerollCost;
-      if (freeRerolls > 0) {
-        freeRerolls--;
-        freeRerollsUsed++;
-      } else {
-        paidRerollsUsed++;
-      }
+      if (freeRerolls > 0) { freeRerolls--; freeRerollsUsed++; }
+      else paidRerollsUsed++;
       boardsPlayed++;
-      currentBoard = Array(meta.chestSlots).fill('__avg__');
-      isFirstBoard = false;
     } else {
-      break;
+      // Can't afford to reroll or open anything new — done
+      return { totalExpectedYield: totalYield, keysSpent: keyBudget - keysLeft, boardsPlayed, freeRerollsUsed, paidRerollsUsed };
     }
+  }
+
+  // Phase 2: random boards.
+  // Every slot has EV = evAvgSlot (weighted average across chest types).
+  // Optimal play: open all 9 each board (no reroll threshold to beat), collect free refresh.
+  // Each full board costs 9×K = 540 keys and yields 9×evAvgSlot.
+  while (keysLeft >= K) {
+    const chestsThisBoard = Math.min(meta.chestSlots, Math.floor(keysLeft / K));
+    totalYield += chestsThisBoard * evAvgSlot;
+    keysLeft -= chestsThisBoard * K;
+    boardsPlayed++;
+    if (chestsThisBoard < meta.chestSlots) break; // partial last board — done
+    // Full board → free refresh, loop again
   }
 
   return {
