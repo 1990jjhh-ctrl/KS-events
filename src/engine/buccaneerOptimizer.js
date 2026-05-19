@@ -135,15 +135,26 @@ export function runOptimizer(config) {
     return { ...s, label: ct?.label ?? s.chestTypeId, colorClass: ct?.colorClass ?? '' };
   });
 
-  const recommendedIndices = recommendedOpens(rankedSlots, keyBudget, meta.keyCostPerChest);
-  const recommendedSlotIndices = new Set(recommendedIndices);
-
   const evByChestType = {};
   for (const ct of chestTypes) {
     evByChestType[ct.id] = evForChest(ct.id, targetItemId, rewardTables);
   }
 
   const advice = rerollDecision(rankedSlots, keyBudget, freeRerollsRemaining, targetItemId, data);
+
+  // Glow set:
+  // - REROLL advised → nothing glows (you should reroll, not open)
+  // - OPEN with above-threshold slots → glow those (within budget)
+  // - OPEN with no above-threshold slots (can't afford reroll) → glow top-N within budget
+  let recommendedSlotIndices;
+  if (advice.shouldReroll) {
+    recommendedSlotIndices = new Set();
+  } else {
+    const aboveThreshold = rankedSlots.filter((s) => s.ev >= advice.evRerollSingleChest);
+    const candidates = aboveThreshold.length > 0 ? aboveThreshold : rankedSlots;
+    const indices = recommendedOpens(candidates, keyBudget, meta.keyCostPerChest);
+    recommendedSlotIndices = new Set(indices);
+  }
 
   const totalEVIfOpenAll = rankedSlots.reduce((s, r) => s + r.ev, 0);
   const totalEVIfOpenRecommended = rankedSlots
