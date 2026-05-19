@@ -1,0 +1,50 @@
+:root {
+  /* Surfaces */
+  --color-bg: #0f0f1a;
+  --color-surface: #1a1a2e;
+  --color-surface-2: #22223b;
+  --color-surface-3: #2d2d4a;
+  --color-border: #3a3a5c;
+
+  /* Text */
+  --color-text: #e8e8f0;
+  --color-text-muted: #8888aa;
+  --color-text-dim: #5a5a7a;
+
+  /* Chest type colors */
+  --chest-splendid-bg: #c8860a;
+  --chest-splendid-border: #f0ab30;
+  --chest-splendid-text: #fff8e8;
+  --chest-exquisite-bg: #2a5fa5;
+  --chest-exquisite-border: #5090e0;
+  --chest-exquisite-text: #e8f0ff;
+  --chest-common-bg: #3d3428;
+  --chest-common-border: #7a6a50;
+  --chest-common-text: #d8cfc0;
+
+  /* Accents */
+  --color-recommended: #2ecc71;
+  --color-recommended-glow: rgba(46, 204, 113, 0.35);
+  --color-reroll: #e74c3c;
+  --color-reroll-glow: rgba(231, 76, 60, 0.25);
+  --color-accent: #9b59b6;
+  --color-pill-active: #9b59b6;
+  --color-pill-active-border: #c07ae0;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  /* Typography */
+  --font-mono: 'Courier New', Courier, monospace;
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}

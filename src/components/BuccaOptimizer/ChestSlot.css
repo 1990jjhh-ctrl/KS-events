@@ -1,0 +1,97 @@
+.chest-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  min-height: 90px;
+}
+
+/* Chest type background colors */
+.chest--splendid {
+  background: linear-gradient(135deg, #2a1c00 0%, #3d2a00 100%);
+  border-color: var(--chest-splendid-border);
+}
+
+.chest--exquisite {
+  background: linear-gradient(135deg, #0a1a30 0%, #122040 100%);
+  border-color: var(--chest-exquisite-border);
+}
+
+.chest--common {
+  background: linear-gradient(135deg, #1a1510 0%, #2a2018 100%);
+  border-color: var(--chest-common-border);
+}
+
+.chest--recommended {
+  box-shadow: 0 0 0 2px var(--color-recommended), 0 0 12px var(--color-recommended-glow);
+  border-color: var(--color-recommended) !important;
+}
+
+.chest-slot__rank {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.chest-slot__select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--color-text);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.chest-slot__select:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Tint the select background to match chest type */
+.chest--splendid .chest-slot__select {
+  background: rgba(200, 134, 10, 0.2);
+  border-color: rgba(240, 171, 48, 0.35);
+}
+
+.chest--exquisite .chest-slot__select {
+  background: rgba(42, 95, 165, 0.25);
+  border-color: rgba(80, 144, 224, 0.35);
+}
+
+.chest--common .chest-slot__select {
+  background: rgba(90, 78, 60, 0.3);
+  border-color: rgba(122, 106, 80, 0.4);
+}
+
+.chest-slot__check {
+  position: absolute;
+  bottom: var(--space-1);
+  right: var(--space-2);
+  color: var(--color-recommended);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* EVBadge inside chest slot */
+.chest-slot .ev-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  letter-spacing: 0.03em;
+}
