@@ -2,7 +2,7 @@ import './KeyBudgetInput.css';
 
 const MAX_FREE_REROLLS = 3;
 
-export default function KeyBudgetInput({ keyBudget, freeRerollsRemaining, onKeyBudgetChange, onFreeRerollsChange }) {
+export default function KeyBudgetInput({ keyBudget, freeRerollsRemaining, onKeyBudgetChange, onFreeRerollsChange, className = '' }) {
   function handleBudgetInput(e) {
     const val = Math.max(0, parseInt(e.target.value, 10) || 0);
     onKeyBudgetChange(val);
@@ -13,7 +13,7 @@ export default function KeyBudgetInput({ keyBudget, freeRerollsRemaining, onKeyB
   }
 
   return (
-    <div className="key-budget-input">
+    <div className={`key-budget-input ${className}`}>
       <div className="key-budget-input__row">
         <label className="key-budget-input__label" htmlFor="key-budget">
           Key budget

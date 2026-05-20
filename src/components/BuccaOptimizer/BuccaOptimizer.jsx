@@ -5,7 +5,7 @@ import Header from '../shared/Header.jsx';
 import ChestGrid from './ChestGrid.jsx';
 import TargetSelector from './TargetSelector.jsx';
 import KeyBudgetInput from './KeyBudgetInput.jsx';
-import RecommendationPanel from './RecommendationPanel.jsx';
+import { EVTablePanel, RankedSlotsPanel, AdvicePanel, ProjectionPanel } from './RecommendationPanel.jsx';
 import './BuccaOptimizer.css';
 
 const DEFAULT_SLOTS = Array(data.meta.chestSlots).fill('common');
@@ -41,46 +41,69 @@ export default function BuccaOptimizer() {
   );
 
   const targetLabel = data.rewardItems.find((r) => r.id === targetItemId)?.label ?? targetItemId;
+  const strategy = result.rerollAdvice.strategy;
 
   return (
     <div className="buccaopt">
       <Header />
       <main className="buccaopt__main">
-        <div className="buccaopt__left">
-          <TargetSelector
-            rewardItems={data.rewardItems}
-            targetItemId={targetItemId}
-            onChange={setTargetItemId}
-          />
-          <KeyBudgetInput
-            keyBudget={keyBudget}
-            freeRerollsRemaining={freeRerollsRemaining}
-            onKeyBudgetChange={setKeyBudget}
-            onFreeRerollsChange={setFreeRerollsRemaining}
-          />
-          <ChestGrid
-            slots={slots}
-            chestTypes={data.chestTypes}
-            rankedSlots={result.rankedSlots}
-            recommendedSlotIndices={result.recommendedSlotIndices}
-            targetLabel={targetLabel}
-            onSlotChange={handleSlotChange}
-          />
-        </div>
-        <div className="buccaopt__right">
-          <RecommendationPanel
-            result={result}
-            chestTypes={data.chestTypes}
-            rewardItems={data.rewardItems}
-            targetItemId={targetItemId}
-            keyBudget={keyBudget}
-            freeRerollsRemaining={freeRerollsRemaining}
-            forwardResult={forwardResult}
-            backwardResult={backwardResult}
-            targetQty={targetQty}
-            onTargetQtyChange={setTargetQty}
-          />
-        </div>
+        {/* JSX order = mobile single-column order; desktop rearranges via grid-template-areas */}
+
+        <TargetSelector
+          className="area-target"
+          rewardItems={data.rewardItems}
+          targetItemId={targetItemId}
+          onChange={setTargetItemId}
+        />
+
+        <KeyBudgetInput
+          className="area-budget"
+          keyBudget={keyBudget}
+          freeRerollsRemaining={freeRerollsRemaining}
+          onKeyBudgetChange={setKeyBudget}
+          onFreeRerollsChange={setFreeRerollsRemaining}
+        />
+
+        <ChestGrid
+          className="area-chests"
+          slots={slots}
+          chestTypes={data.chestTypes}
+          rankedSlots={result.rankedSlots}
+          recommendedSlotIndices={result.recommendedSlotIndices}
+          targetLabel={targetLabel}
+          onSlotChange={handleSlotChange}
+        />
+
+        <AdvicePanel
+          className="area-rec"
+          rerollAdvice={result.rerollAdvice}
+        />
+
+        <ProjectionPanel
+          className="area-proj"
+          forwardResult={forwardResult}
+          backwardResult={backwardResult}
+          targetQty={targetQty}
+          onTargetQtyChange={setTargetQty}
+          keyBudget={keyBudget}
+          freeRerollsRemaining={freeRerollsRemaining}
+          targetLabel={targetLabel}
+          strategy={strategy}
+        />
+
+        <EVTablePanel
+          className="area-ev"
+          chestTypes={data.chestTypes}
+          evByChestType={result.evByChestType}
+          strategy={strategy}
+          targetLabel={targetLabel}
+        />
+
+        <RankedSlotsPanel
+          className="area-ranked"
+          rankedSlots={result.rankedSlots}
+          recommendedSlotIndices={result.recommendedSlotIndices}
+        />
       </main>
     </div>
   );

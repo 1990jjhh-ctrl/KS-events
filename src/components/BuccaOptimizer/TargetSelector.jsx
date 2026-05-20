@@ -1,8 +1,8 @@
 import './TargetSelector.css';
 
-export default function TargetSelector({ rewardItems, targetItemId, onChange }) {
+export default function TargetSelector({ rewardItems, targetItemId, onChange, className = '' }) {
   return (
-    <div className="target-selector">
+    <div className={`target-selector ${className}`}>
       <span className="target-selector__label">Target reward:</span>
       <div className="target-selector__pills" role="group" aria-label="Select target reward">
         {rewardItems.map((item) => (
