@@ -19,10 +19,12 @@
 @media (min-width: 1024px) {
   .buccaopt__main {
     grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 2fr;
     grid-template-areas:
       "target rec ev"
       "budget rec ranked"
       "chests proj ranked";
+    min-height: calc(100vh - 100px);
   }
 
   .area-target  { grid-area: target; }
