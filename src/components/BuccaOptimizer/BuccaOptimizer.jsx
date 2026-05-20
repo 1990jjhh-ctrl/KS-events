@@ -49,12 +49,16 @@ export default function BuccaOptimizer() {
       <main className="buccaopt__main">
         {/* JSX order = mobile single-column order; desktop rearranges via grid-template-areas */}
 
-        <TargetSelector
-          className="area-target"
-          rewardItems={data.rewardItems}
-          targetItemId={targetItemId}
-          onChange={setTargetItemId}
-        />
+        <div className="area-target">
+          <TargetSelector
+            rewardItems={data.rewardItems}
+            targetItemId={targetItemId}
+            onChange={setTargetItemId}
+          />
+          <AdvicePanel
+            rerollAdvice={result.rerollAdvice}
+          />
+        </div>
 
         <KeyBudgetInput
           className="area-budget"
@@ -72,11 +76,6 @@ export default function BuccaOptimizer() {
           recommendedSlotIndices={result.recommendedSlotIndices}
           targetLabel={targetLabel}
           onSlotChange={handleSlotChange}
-        />
-
-        <AdvicePanel
-          className="area-rec"
-          rerollAdvice={result.rerollAdvice}
         />
 
         <ProjectionPanel
