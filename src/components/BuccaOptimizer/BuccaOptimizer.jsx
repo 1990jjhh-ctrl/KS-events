@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import data from '../../data/buccaneer-bounty.json';
-import { runOptimizer } from '../../engine/buccaneerOptimizer.js';
+import { runOptimizer, projectForward, projectBackward } from '../../engine/buccaneerOptimizer.js';
 import Header from '../shared/Header.jsx';
 import ChestGrid from './ChestGrid.jsx';
 import TargetSelector from './TargetSelector.jsx';
@@ -15,6 +15,7 @@ export default function BuccaOptimizer() {
   const [targetItemId, setTargetItemId] = useState('pearl');
   const [keyBudget, setKeyBudget] = useState(540);
   const [freeRerollsRemaining, setFreeRerollsRemaining] = useState(data.meta.freeDailyRerolls);
+  const [targetQty, setTargetQty] = useState(0);
 
   function handleSlotChange(index, chestTypeId) {
     setSlots((prev) => {
@@ -27,6 +28,16 @@ export default function BuccaOptimizer() {
   const result = useMemo(
     () => runOptimizer({ slots, targetItemId, keyBudget, freeRerollsRemaining, data }),
     [slots, targetItemId, keyBudget, freeRerollsRemaining]
+  );
+
+  const forwardResult = useMemo(
+    () => projectForward(keyBudget, targetItemId, freeRerollsRemaining, data),
+    [keyBudget, targetItemId, freeRerollsRemaining]
+  );
+
+  const backwardResult = useMemo(
+    () => targetQty > 0 ? projectBackward(targetQty, targetItemId, freeRerollsRemaining, data) : null,
+    [targetQty, targetItemId, freeRerollsRemaining]
   );
 
   const targetLabel = data.rewardItems.find((r) => r.id === targetItemId)?.label ?? targetItemId;
@@ -64,6 +75,10 @@ export default function BuccaOptimizer() {
             targetItemId={targetItemId}
             keyBudget={keyBudget}
             freeRerollsRemaining={freeRerollsRemaining}
+            forwardResult={forwardResult}
+            backwardResult={backwardResult}
+            targetQty={targetQty}
+            onTargetQtyChange={setTargetQty}
           />
         </div>
       </main>

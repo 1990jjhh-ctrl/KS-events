@@ -11,13 +11,6 @@ export function evForChest(chestTypeId, targetItemId, rewardTables) {
     .reduce((sum, row) => sum + row.prob * row.qty, 0);
 }
 
-export function evRerollExpected(targetItemId, data) {
-  const { chestTypes, rewardTables } = data;
-  return chestTypes.reduce((sum, ct) => {
-    return sum + (ct.spawnWeight / 100) * evForChest(ct.id, targetItemId, rewardTables);
-  }, 0);
-}
-
 export function scoreSlots(slots, targetItemId, rewardTables) {
   return slots
     .map((chestTypeId, idx) => ({
@@ -39,91 +32,134 @@ export function recommendedOpens(rankedSlots, keyBudget, keyCostPerChest) {
   return indices;
 }
 
-export function rerollDecision(rankedSlots, keyBudget, freeRerollsRemaining, targetItemId, data) {
-  const { meta } = data;
-  const evNextBest = rankedSlots[0]?.ev ?? 0;
-  const evAvg = evRerollExpected(targetItemId, data);
-  const effectiveRerollCost = freeRerollsRemaining > 0 ? 0 : meta.rerollCost;
-  const canAffordReroll = keyBudget >= effectiveRerollCost + meta.keyCostPerChest;
-  const shouldReroll = canAffordReroll && evNextBest < evAvg;
+/**
+ * Try all 7 non-empty subsets of chest types and return the one with the
+ * highest expected yield per key.
+ *
+ * Insight: opening only high-EV chest types and manually rerolling past the
+ * rest can beat opening every chest, because the reroll cost is amortised over
+ * fewer but higher-value opens. This matches the script's subset-selection logic.
+ *
+ * When ALL types are selected you open every chest → free auto-refresh after
+ * each board → 0 reroll fee. Any strict subset requires a paid manual reroll
+ * (90 keys) after each board.
+ */
+export function optimizeStrategy(targetItemId, data) {
+  const { chestTypes, rewardTables, meta } = data;
+  const n = chestTypes.length;
+  let best = null;
 
-  const bestChestLabel = data.chestTypes.find((ct) => ct.id === rankedSlots[0]?.chestTypeId)?.label ?? 'Unknown';
-  const freeTag = freeRerollsRemaining > 0 ? ' (free reroll available)' : '';
-  const reasoning = shouldReroll
-    ? `Your best chest (${bestChestLabel}, EV ${evNextBest.toFixed(3)}) is below the average new chest (EV ${evAvg.toFixed(3)}) — reroll${freeTag}.`
-    : canAffordReroll
-    ? `Your best chest (${bestChestLabel}, EV ${evNextBest.toFixed(3)}) beats the average new chest (EV ${evAvg.toFixed(3)}) — open it.`
-    : `Not enough keys to reroll (need ${effectiveRerollCost + meta.keyCostPerChest}, have ${keyBudget}).`;
+  for (let mask = 1; mask < (1 << n); mask++) {
+    const subset = chestTypes.filter((_, i) => mask & (1 << i));
+    const totalWeight = subset.reduce((s, ct) => s + ct.spawnWeight / 100, 0);
+    if (totalWeight === 0) continue;
 
-  return { shouldReroll, evNextBest, evRerollSingleChest: evAvg, effectiveRerollCost, reasoning };
-}
+    const weightedEV = subset.reduce(
+      (s, ct) => s + (ct.spawnWeight / 100) * evForChest(ct.id, targetItemId, rewardTables),
+      0
+    );
+    const evPerSelectedChest = weightedEV / totalWeight;
+    const chestsPerBoard = meta.chestSlots * totalWeight;
+    const isAllTypes = subset.length === n;
+    const rerollCost = isAllTypes ? 0 : meta.rerollCost;
+    const keysPerBoard = chestsPerBoard * meta.keyCostPerChest + rerollCost;
+    const yieldPerBoard = chestsPerBoard * evPerSelectedChest; // = weightedEV * chestSlots
+    const yieldPerKey = keysPerBoard > 0 ? yieldPerBoard / keysPerBoard : 0;
 
-export function projectYield(config) {
-  const { slots, targetItemId, keyBudget, freeRerollsRemaining, data } = config;
-  const { meta } = data;
-  const K = meta.keyCostPerChest; // 60
-  const R = meta.rerollCost;      // 90
-
-  const evAvgSlot = evRerollExpected(targetItemId, data);
-
-  let keysLeft = keyBudget;
-  let totalYield = 0;
-  let boardsPlayed = 0;
-  let freeRerollsUsed = 0;
-  let paidRerollsUsed = 0;
-  let freeRerolls = freeRerollsRemaining;
-
-  // Phase 1: first board — known chest types.
-  // Open only slots whose EV beats the expected value of a fresh random slot.
-  const ranked = scoreSlots(slots, targetItemId, data.rewardTables);
-  let firstBoardOpened = 0;
-  for (const slot of ranked) {
-    if (slot.ev < evAvgSlot) break; // sorted desc, so all remaining are also below
-    if (keysLeft < K) break;
-    totalYield += slot.ev;
-    keysLeft -= K;
-    firstBoardOpened++;
-  }
-
-  const firstBoardComplete = firstBoardOpened === slots.length;
-
-  if (firstBoardComplete) {
-    // Opened all 9 → free auto-refresh, move to random boards
-    boardsPlayed++;
-  } else {
-    // Some (or all) slots skipped — reroll if affordable
-    const rerollCost = freeRerolls > 0 ? 0 : R;
-    if (keysLeft >= rerollCost + K) {
-      keysLeft -= rerollCost;
-      if (freeRerolls > 0) { freeRerolls--; freeRerollsUsed++; }
-      else paidRerollsUsed++;
-      boardsPlayed++;
-    } else {
-      // Can't afford to reroll or open anything new — done
-      return { totalExpectedYield: totalYield, keysSpent: keyBudget - keysLeft, boardsPlayed, freeRerollsUsed, paidRerollsUsed };
+    if (best === null || yieldPerKey > best.yieldPerKey) {
+      best = {
+        subsetIds: new Set(subset.map((ct) => ct.id)),
+        subsetLabels: subset.map((ct) => ct.label),
+        evPerSelectedChest,
+        chestsPerBoard,
+        rerollCost,
+        keysPerBoard,
+        yieldPerBoard,
+        yieldPerKey,
+      };
     }
   }
 
-  // Phase 2: random boards.
-  // Every slot has EV = evAvgSlot (weighted average across chest types).
-  // Optimal play: open all 9 each board (no reroll threshold to beat), collect free refresh.
-  // Each full board costs 9×K = 540 keys and yields 9×evAvgSlot.
-  while (keysLeft >= K) {
-    const chestsThisBoard = Math.min(meta.chestSlots, Math.floor(keysLeft / K));
-    totalYield += chestsThisBoard * evAvgSlot;
-    keysLeft -= chestsThisBoard * K;
-    boardsPlayed++;
-    if (chestsThisBoard < meta.chestSlots) break; // partial last board — done
-    // Full board → free refresh, loop again
+  return best;
+}
+
+/**
+ * Forward projection: given a key budget, how many items do we expect?
+ *
+ * Free rerolls are spent first (they reduce per-board cost from keysPerBoard to
+ * chestsPerBoard×60 for those boards). After free rerolls are exhausted the
+ * remaining keys are spent at the normal rate.
+ */
+export function projectForward(keyBudget, targetItemId, freeRerollsRemaining, data) {
+  const strat = optimizeStrategy(targetItemId, data);
+  if (!strat || strat.keysPerBoard === 0) return { expectedYield: 0, strategy: strat };
+
+  const freeBoardCost = strat.chestsPerBoard * data.meta.keyCostPerChest;
+  let keysLeft = keyBudget;
+  let totalYield = 0;
+
+  if (strat.rerollCost > 0 && freeRerollsRemaining > 0) {
+    const freeBoardsAffordable = Math.min(
+      freeRerollsRemaining,
+      Math.floor(keysLeft / freeBoardCost)
+    );
+    totalYield += freeBoardsAffordable * strat.yieldPerBoard;
+    keysLeft -= freeBoardsAffordable * freeBoardCost;
   }
 
-  return {
-    totalExpectedYield: totalYield,
-    keysSpent: keyBudget - keysLeft,
-    boardsPlayed,
-    freeRerollsUsed,
-    paidRerollsUsed,
-  };
+  // Remaining keys at the normal (paid-reroll) rate
+  totalYield += (keysLeft / strat.keysPerBoard) * strat.yieldPerBoard;
+
+  return { expectedYield: totalYield, strategy: strat };
+}
+
+/**
+ * Backward projection: given a target quantity, how many keys are needed?
+ *
+ * Uses ceil-based formula matching the Python script, with a one-board
+ * correction (first board is free — no reroll fee) and free-reroll savings.
+ */
+export function projectBackward(targetQty, targetItemId, freeRerollsRemaining, data) {
+  const strat = optimizeStrategy(targetItemId, data);
+  if (!strat || strat.evPerSelectedChest === 0) {
+    return { keysNeeded: Infinity, numChests: Infinity, numBoards: Infinity, freeRerollSavings: 0, strategy: strat };
+  }
+
+  const numChests = Math.ceil(targetQty / strat.evPerSelectedChest);
+  const numBoards = strat.chestsPerBoard > 0
+    ? Math.ceil(numChests / strat.chestsPerBoard)
+    : Infinity;
+
+  const keysForChests = numChests * data.meta.keyCostPerChest;
+  // First board is free; the remaining (numBoards-1) each cost a reroll fee
+  const rerollsNeeded = Math.max(0, numBoards - 1);
+  const freeRerollSavings = strat.rerollCost > 0
+    ? Math.min(rerollsNeeded, freeRerollsRemaining) * data.meta.rerollCost
+    : 0;
+  const keysForRerolls = rerollsNeeded * strat.rerollCost;
+  const keysNeeded = Math.max(0, keysForChests + keysForRerolls - freeRerollSavings);
+
+  return { keysNeeded, numChests, numBoards, freeRerollSavings, strategy: strat };
+}
+
+export function rerollDecision(rankedSlots, keyBudget, freeRerollsRemaining, targetItemId, data) {
+  const { meta } = data;
+  const strat = optimizeStrategy(targetItemId, data);
+  const effectiveRerollCost = freeRerollsRemaining > 0 ? 0 : meta.rerollCost;
+  const canAffordReroll = keyBudget >= effectiveRerollCost + meta.keyCostPerChest;
+
+  const bestVisible = rankedSlots.find((s) => strat.subsetIds.has(s.chestTypeId));
+  const shouldReroll = canAffordReroll && !bestVisible;
+
+  const subsetStr = strat.subsetLabels.join(' + ');
+  const freeTag = freeRerollsRemaining > 0 ? ' (free)' : '';
+  const reasoning = shouldReroll
+    ? `No ${subsetStr} visible — reroll${freeTag}.`
+    : bestVisible
+    ? `${bestVisible.label} in slot ${bestVisible.slotIndex + 1} is worth opening (EV ${bestVisible.ev.toFixed(3)}).`
+    : `No ${subsetStr} visible and cannot afford to reroll with ${keyBudget} keys.`;
+
+  return { shouldReroll, effectiveRerollCost, reasoning, strategy: strat };
 }
 
 export function runOptimizer(config) {
@@ -142,17 +178,14 @@ export function runOptimizer(config) {
 
   const advice = rerollDecision(rankedSlots, keyBudget, freeRerollsRemaining, targetItemId, data);
 
-  // Glow set:
-  // - REROLL advised → nothing glows (you should reroll, not open)
-  // - OPEN with above-threshold slots → glow those (within budget)
-  // - OPEN with no above-threshold slots (can't afford reroll) → glow top-N within budget
+  // Glow set: visible chests whose type belongs to the optimal subset, within budget.
+  // Nothing glows when REROLL is advised.
   let recommendedSlotIndices;
   if (advice.shouldReroll) {
     recommendedSlotIndices = new Set();
   } else {
-    const aboveThreshold = rankedSlots.filter((s) => s.ev >= advice.evRerollSingleChest);
-    const candidates = aboveThreshold.length > 0 ? aboveThreshold : rankedSlots;
-    const indices = recommendedOpens(candidates, keyBudget, meta.keyCostPerChest);
+    const openable = rankedSlots.filter((s) => advice.strategy.subsetIds.has(s.chestTypeId));
+    const indices = recommendedOpens(openable, keyBudget, meta.keyCostPerChest);
     recommendedSlotIndices = new Set(indices);
   }
 
@@ -161,8 +194,6 @@ export function runOptimizer(config) {
     .filter((r) => recommendedSlotIndices.has(r.slotIndex))
     .reduce((s, r) => s + r.ev, 0);
 
-  const projection = projectYield({ slots, targetItemId, keyBudget, freeRerollsRemaining, data });
-
   return {
     rankedSlots,
     recommendedSlotIndices,
@@ -170,6 +201,5 @@ export function runOptimizer(config) {
     rerollAdvice: advice,
     totalEVIfOpenAll,
     totalEVIfOpenRecommended,
-    projection,
   };
 }
