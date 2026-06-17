@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "keyCostPerChest": 60,
+    "rerollCost": 90,
+    "freeDailyRerolls": 3,
+    "chestSlots": 9
+  },
+  "chestTypes": [
+    { "id": "splendid",  "label": "Splendid Chest",  "spawnWeight": 8.5,  "colorClass": "chest--splendid"  },
+    { "id": "exquisite", "label": "Exquisite Chest", "spawnWeight": 24.0, "colorClass": "chest--exquisite" },
+    { "id": "common",    "label": "Common Chest",    "spawnWeight": 67.5, "colorClass": "chest--common"    }
+  ],
+  "rewardItems": [
+    { "id": "pearl",         "label": "Pearl of Enigma"           },
+    { "id": "truegold",      "label": "Truegold"                  },
+    { "id": "treasure_hunt", "label": "Treasure Hunt Chest"       },
+    { "id": "hero_shard",    "label": "Mythic General Hero Shard" },
+    { "id": "gear_chest",    "label": "Lucky Hero Gear Chest"     }
+  ],
+  "rewardTables": {
+    "splendid": [
+      { "itemId": "pearl",         "qty": 100, "prob": 0.02   },
+      { "itemId": "pearl",         "qty": 50,  "prob": 0.06   },
+      { "itemId": "pearl",         "qty": 20,  "prob": 0.42   },
+      { "itemId": "treasure_hunt", "qty": 10,  "prob": 0.09   },
+      { "itemId": "hero_shard",    "qty": 5,   "prob": 0.01   },
+      { "itemId": "hero_shard",    "qty": 3,   "prob": 0.05   },
+      { "itemId": "hero_shard",    "qty": 1,   "prob": 0.15   },
+      { "itemId": "gear_chest",    "qty": 1,   "prob": 0.08   },
+      { "itemId": "truegold",      "qty": 100, "prob": 0.005  },
+      { "itemId": "truegold",      "qty": 20,  "prob": 0.035  },
+      { "itemId": "truegold",      "qty": 10,  "prob": 0.08   }
+    ],
+    "exquisite": [
+      { "itemId": "pearl",         "qty": 100, "prob": 0.005  },
+      { "itemId": "pearl",         "qty": 20,  "prob": 0.06   },
+      { "itemId": "pearl",         "qty": 6,   "prob": 0.42   },
+      { "itemId": "treasure_hunt", "qty": 3,   "prob": 0.09   },
+      { "itemId": "hero_shard",    "qty": 3,   "prob": 0.01   },
+      { "itemId": "hero_shard",    "qty": 2,   "prob": 0.05   },
+      { "itemId": "hero_shard",    "qty": 1,   "prob": 0.16   },
+      { "itemId": "gear_chest",    "qty": 1,   "prob": 0.08   },
+      { "itemId": "truegold",      "qty": 50,  "prob": 0.005  },
+      { "itemId": "truegold",      "qty": 10,  "prob": 0.04   },
+      { "itemId": "truegold",      "qty": 5,   "prob": 0.08   }
+    ],
+    "common": [
+      { "itemId": "pearl",         "qty": 100, "prob": 0.003  },
+      { "itemId": "pearl",         "qty": 6,   "prob": 0.107  },
+      { "itemId": "pearl",         "qty": 2,   "prob": 0.405  },
+      { "itemId": "treasure_hunt", "qty": 1,   "prob": 0.10   },
+      { "itemId": "hero_shard",    "qty": 3,   "prob": 0.01   },
+      { "itemId": "hero_shard",    "qty": 2,   "prob": 0.04   },
+      { "itemId": "hero_shard",    "qty": 1,   "prob": 0.13   },
+      { "itemId": "gear_chest",    "qty": 1,   "prob": 0.08   },
+      { "itemId": "truegold",      "qty": 20,  "prob": 0.005  },
+      { "itemId": "truegold",      "qty": 5,   "prob": 0.04   },
+      { "itemId": "truegold",      "qty": 2,   "prob": 0.08   }
+    ]
+  }
+}
